@@ -133,8 +133,8 @@ def enjoy_env_sess(sess):
             writer.writerows(actions_buffer)
         
         for i in range(PARALLEL):
-            shutil.rmtree("/home/ubuntu/coinrun/" + str(i))
             shutil.copytree("/home/ubuntu/coinrun/" + str(i), "/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + str(i))
+            shutil.rmtree("/home/ubuntu/coinrun/" + str(i))
         
         print("DONE WITH STEP " + str(step_counter))
         
