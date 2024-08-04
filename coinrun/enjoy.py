@@ -82,65 +82,46 @@ def enjoy_env_sess(sess):
     
     actions_buffer = [[env for env in range(PARALLEL)]]
     
-    step_counter = 3
-    while True:
-        working_dir_prefix = "/home/ubuntu/coinrun/" + "step_" + str(step_counter) + "/"
-        os.mkdir(str(working_dir_prefix))
-        for i in range(PARALLEL):
-            os.mkdir("/home/ubuntu/coinrun/" + str(i))
-        while should_continue() and t_step < 1000:
-            action, values, state, _ = agent.step(obs, state, done)
-            obs, rew, done, info = env.step(action)
-            
-            actions_buffer.append(action)
     
-            if should_render and should_render_obs:
-                if np.shape(obs)[-1] % 3 == 0:
-                    ob_frame = obs[0,:,:,-3:]
-                else:
-                    ob_frame = obs[0,:,:,-1]
-                    ob_frame = np.stack([ob_frame] * 3, axis=2)
-                viewer.imshow(ob_frame)
-    
-            curr_rews[:,0] += rew
-    
-            for i, d in enumerate(done):
-                if d:
-                    if score_counts[i] < rep_count:
-                        score_counts[i] += 1
-    
-                        if 'episode' in info[i]:
-                            scores[i] += info[i].get('episode')['r']
-    
-            if t_step % 100 == 0:
-                mpi_print('t', t_step, values[0], done[0], rew[0], curr_rews[0], np.shape(obs))
-    
-            maybe_render(info[0])
-    
-            t_step += 1
-    
+    while should_continue() and t_step < 1000:
+        action, values, state, _ = agent.step(obs, state, done)
+        obs, rew, done, info = env.step(action)
+        
+        actions_buffer.append(action)
+
+        if should_render and should_render_obs:
+            if np.shape(obs)[-1] % 3 == 0:
+                ob_frame = obs[0,:,:,-3:]
+            else:
+                ob_frame = obs[0,:,:,-1]
+                ob_frame = np.stack([ob_frame] * 3, axis=2)
+            viewer.imshow(ob_frame)
+
+        curr_rews[:,0] += rew
+
+        for i, d in enumerate(done):
+            if d:
+                if score_counts[i] < rep_count:
+                    score_counts[i] += 1
+
+                    if 'episode' in info[i]:
+                        scores[i] += info[i].get('episode')['r']
+
+        if t_step % 100 == 0:
+            mpi_print('t', t_step, values[0], done[0], rew[0], curr_rews[0], np.shape(obs))
+
+        maybe_render(info[0])
+
+        t_step += 1
+
+        if should_render:
+            time.sleep(.02)
+
+        if done[0]:
             if should_render:
-                time.sleep(.02)
-    
-            if done[0]:
-                if should_render:
-                    mpi_print('ep_rew', curr_rews)
-    
-                curr_rews[:] = 0
-    
-        with open("/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + "action_data.csv", 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(actions_buffer)
-        
-        for i in range(PARALLEL):
-            shutil.copytree("/home/ubuntu/coinrun/" + str(i), "/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + str(i))
-            shutil.rmtree("/home/ubuntu/coinrun/" + str(i))
-        
-        print("DONE WITH STEP " + str(step_counter))
-        
-        step_counter += 1
-    
-        t_step = 0
+                mpi_print('ep_rew', curr_rews)
+
+            curr_rews[:] = 0
     
     result = 0
 
@@ -156,13 +137,32 @@ def enjoy_env_sess(sess):
 
         result = mean_score
 
-    return result
+    return actions_buffer
 
 def main():
-    utils.setup_mpi_gpus()
-    setup_utils.setup_and_load()
-    with tf.Session() as sess:
-        enjoy_env_sess(sess)
+    step_counter = 4
+    while True:
+        working_dir_prefix = "/home/ubuntu/coinrun/" + "step_" + str(step_counter) + "/"
+        os.mkdir(str(working_dir_prefix))
+        for i in range(PARALLEL):
+            os.mkdir("/home/ubuntu/coinrun/" + str(i))
+
+        utils.setup_mpi_gpus()
+        setup_utils.setup_and_load()
+        with tf.Session() as sess:
+            actions_buffer = enjoy_env_sess(sess)
+        
+        with open("/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + "action_data.csv", 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(actions_buffer)
+        
+        for i in range(PARALLEL):
+            shutil.copytree("/home/ubuntu/coinrun/" + str(i), "/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + str(i))
+            shutil.rmtree("/home/ubuntu/coinrun/" + str(i))
+        
+        print("DONE WITH STEP " + str(step_counter))
+        
+        step_counter += 1
 
 if __name__ == '__main__':
     main()
