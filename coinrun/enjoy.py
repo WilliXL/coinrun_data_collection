@@ -82,12 +82,13 @@ def enjoy_env_sess(sess):
     
     actions_buffer = [[env for env in range(PARALLEL)]]
     
-    step_counter = 31
+    step_counter = 2
     while True:
         working_dir_prefix = "/home/ubuntu/coinrun/" + "step_" + str(step_counter) + "/"
+        shutil.rmtree(working_dir_prefix)
+        os.mkdir(str(working_dir_prefix))
         for i in range(PARALLEL):
-            shutil.rmtree("/home/ubuntu/coinrun/" + str(i))
-            os.mkdir(str(i))
+            os.mkdir("/home/ubuntu/coinrun/" + str(i))
         while should_continue() and t_step < 1000:
             action, values, state, _ = agent.step(obs, state, done)
             obs, rew, done, info = env.step(action)
@@ -133,8 +134,8 @@ def enjoy_env_sess(sess):
             writer.writerows(actions_buffer)
         
         for i in range(PARALLEL):
-            shutil.copytree("/home/ubuntu/coinrun/" + str(i), "/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + str(i))
             shutil.rmtree("/home/ubuntu/coinrun/" + str(i))
+            shutil.copytree("/home/ubuntu/coinrun/" + str(i), "/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + str(i))
         
         print("DONE WITH STEP " + str(step_counter))
         
