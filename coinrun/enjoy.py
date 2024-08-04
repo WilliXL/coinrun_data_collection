@@ -82,10 +82,9 @@ def enjoy_env_sess(sess):
     
     actions_buffer = [[env for env in range(PARALLEL)]]
     
-    step_counter = 2
+    step_counter = 3
     while True:
         working_dir_prefix = "/home/ubuntu/coinrun/" + "step_" + str(step_counter) + "/"
-        shutil.rmtree(working_dir_prefix)
         os.mkdir(str(working_dir_prefix))
         for i in range(PARALLEL):
             os.mkdir("/home/ubuntu/coinrun/" + str(i))
