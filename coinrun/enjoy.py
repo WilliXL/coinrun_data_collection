@@ -16,7 +16,7 @@ from coinrun import policies, wrappers
 
 mpi_print = utils.mpi_print
 
-PARALLEL = 56
+PARALLEL = 64
 
 def create_act_model(sess, env, nenvs):
     ob_space = env.observation_space
@@ -81,7 +81,6 @@ def enjoy_env_sess(sess):
     done = np.zeros(nenvs)
     
     actions_buffer = [[env for env in range(PARALLEL)]]
-    
     
     while should_continue() and t_step < 1000:
         action, values, state, _ = agent.step(obs, state, done)
