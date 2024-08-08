@@ -80,8 +80,12 @@ def enjoy_env_sess(sess):
     state = agent.initial_state
     done = np.zeros(nenvs)
     
+    step_counter = 0
     actions_buffer = [[env for env in range(PARALLEL)]]
-    
+    working_dir_prefix = "/mnt/coinrun/" + "step_" + str(step_counter) + "/"
+    os.mkdir(str(working_dir_prefix))
+    for i in range(PARALLEL):
+        os.mkdir("/mnt/coinrun/" + str(i))
     while should_continue() and t_step < 1000:
         action, values, state, _ = agent.step(obs, state, done)
         obs, rew, done, info = env.step(action)
@@ -121,6 +125,16 @@ def enjoy_env_sess(sess):
                 mpi_print('ep_rew', curr_rews)
 
             curr_rews[:] = 0
+
+    with open("/mnt/coinrun/step_" + str(step_counter) + "/" + "action_data.csv", 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(actions_buffer)
+    
+    for i in range(PARALLEL):
+        shutil.copytree("/mnt/coinrun/" + str(i), "/mnt/coinrun/step_" + str(step_counter) + "/" + str(i))
+        shutil.rmtree("/mnt/coinrun/" + str(i))
+    
+    print("DONE WITH STEP")
     
     result = 0
 
@@ -136,32 +150,13 @@ def enjoy_env_sess(sess):
 
         result = mean_score
 
-    return actions_buffer
+    return result
 
 def main():
-    step_counter = 4
-    while True:
-        working_dir_prefix = "/home/ubuntu/coinrun/" + "step_" + str(step_counter) + "/"
-        os.mkdir(str(working_dir_prefix))
-        for i in range(PARALLEL):
-            os.mkdir("/home/ubuntu/coinrun/" + str(i))
-
-        utils.setup_mpi_gpus()
-        setup_utils.setup_and_load()
-        with tf.Session() as sess:
-            actions_buffer = enjoy_env_sess(sess)
-        
-        with open("/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + "action_data.csv", 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(actions_buffer)
-        
-        for i in range(PARALLEL):
-            shutil.copytree("/home/ubuntu/coinrun/" + str(i), "/home/ubuntu/coinrun/step_" + str(step_counter) + "/" + str(i))
-            shutil.rmtree("/home/ubuntu/coinrun/" + str(i))
-        
-        print("DONE WITH STEP " + str(step_counter))
-        
-        step_counter += 1
+    utils.setup_mpi_gpus()
+    setup_utils.setup_and_load()
+    with tf.Session() as sess:
+        enjoy_env_sess(sess)
 
 if __name__ == '__main__':
     main()

@@ -1724,7 +1724,7 @@ void paint_render_buf(uint8_t* buf, int res_w, int res_h, const std::shared_ptr<
   std::string env_index = std::to_string(todo_state->state_n);
   std::string separator = "/";
   std::string name_extension = ".jpg";
-  std::string time_step = std::to_string(todo_state->time % 1000);
+  std::string time_step = std::to_string(todo_state->time);
   std::string name_output = env_index + separator + time_step + name_extension;
   QString qFilePath = QString::fromStdString(name_output);
   img.save(qFilePath, "jpg", 75);
